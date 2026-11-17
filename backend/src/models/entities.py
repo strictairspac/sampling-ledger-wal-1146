@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from sqlalchemy import String, Integer, JSON, DateTime, ForeignKey
+from sqlalchemy import String, Integer, JSON, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 from src.config.database import Base
 
@@ -31,6 +31,19 @@ class Recovery(Base):
     status: Mapped[str]=mapped_column(String(20),default='queued')
     snapshot: Mapped[dict]=mapped_column(JSON)
     result: Mapped[dict | None]=mapped_column(JSON,nullable=True)
+    created_at: Mapped[datetime]=mapped_column(DateTime,default=now)
+class Rollback(Base):
+    __tablename__='rollbacks'
+    __table_args__=(UniqueConstraint('log_set_id','target_tx',name='uq_rollback_source_target'),)
+    id: Mapped[int]=mapped_column(primary_key=True)
+    log_set_id: Mapped[int]=mapped_column(ForeignKey('log_sets.id'))
+    target_tx: Mapped[str]=mapped_column(String(30))
+    derived_log_set_id: Mapped[int | None]=mapped_column(ForeignKey('log_sets.id'),nullable=True)
+    label: Mapped[str]=mapped_column(String(120))
+    status: Mapped[str]=mapped_column(String(20),default='completed')
+    snapshot: Mapped[dict]=mapped_column(JSON)
+    result: Mapped[dict | None]=mapped_column(JSON,nullable=True)
+    reused: Mapped[bool]=mapped_column(default=False)
     created_at: Mapped[datetime]=mapped_column(DateTime,default=now)
 class Audit(Base):
     __tablename__='audits'
